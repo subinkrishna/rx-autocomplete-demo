@@ -3,6 +3,9 @@ package com.subinkrishna.rx.ac
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -14,6 +17,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,31 +25,36 @@ class MainActivity : AppCompatActivity() {
   private val inputStream = PublishSubject.create<String>()
   private val disposables = CompositeDisposable()
 
+  private val sendEvents = AtomicBoolean(true)
+  private lateinit var keywordEdit: EditText
   private val eventsAdapter = EventListAdapter()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
-    val keywordEdit = configureInput()
+    keywordEdit = configureInput()
     val eventList = configureEventList()
 
     val d = inputStream
-        //.debounce(300, TimeUnit.MILLISECONDS)
-        //.filter { it.length > 2 }
-        //.distinctUntilChanged()
-        .doOnNext { eventsAdapter.add(it, EventType.Request) }
+        .debounce(300, TimeUnit.MILLISECONDS)
+        .distinctUntilChanged()
+        .doOnNext {
+          runOnUiThread { eventsAdapter.add(it, EventType.Request) }
+        }
         .flatMap { keyword ->
-          val delay = Math.random() * 1000
+          val delay = if (keyword.isNotEmpty())
+            1000 + (Math.random() * 1000 * 2).toLong()
+          else 0L
           Observable
               .just("${keyword.toUpperCase()} (${delay.toInt()}ms)")
-              .delay(delay.toLong(), TimeUnit.MILLISECONDS)
+              .delay(delay, TimeUnit.MILLISECONDS)
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe({
-          eventsAdapter.add(it, EventType.Response)
-          eventList.scrollToPosition(eventsAdapter.itemCount)
+          eventsAdapter.add(it.trim(), EventType.Response)
         }, {})
+
     disposables.add(d)
   }
 
@@ -54,13 +63,31 @@ class MainActivity : AppCompatActivity() {
     disposables.dispose()
   }
 
+  override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    menuInflater.inflate(R.menu.menu_actions, menu)
+    return super.onCreateOptionsMenu(menu)
+  }
+
+  override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+    if (item?.itemId == R.id.action_clear) {
+      sendEvents.set(false)
+      eventsAdapter.clear()
+      keywordEdit.setText("")
+      sendEvents.set(true)
+      return true
+    }
+    return super.onOptionsItemSelected(item)
+  }
+
   private fun configureInput(): EditText = findViewById<EditText>(R.id.keywordEdit).apply {
     addTextChangedListener(object : TextWatcher {
       override fun afterTextChanged(s: Editable?) = Unit
       override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
       override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
         val keyword = s?.toString()?.trim() ?: ""
-        inputStream.onNext(keyword)
+        if (sendEvents.get()) {
+          inputStream.onNext(keyword)
+        }
       }
     })
   }
