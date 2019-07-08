@@ -43,11 +43,15 @@ class EventItemViewHolder(val v: TextView): RecyclerView.ViewHolder(v) {
   }
 
   fun bind(event: Event) {
-    val color = if (event.type == EventType.Request) Color.BLACK else Color.BLUE
+    val color = when (event.type) {
+      EventType.Request -> Color.BLACK
+      EventType.Response -> Color.BLUE
+      EventType.Error -> Color.RED
+    }
     v.text = event.label
     v.setTextColor(color)
   }
 }
 
-enum class EventType { Request, Response }
+enum class EventType { Request, Response, Error }
 data class Event(val label: String, val type: EventType)

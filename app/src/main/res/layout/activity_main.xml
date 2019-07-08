@@ -3,17 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:divider="@android:drawable/divider_horizontal_textfield"
     android:orientation="vertical"
     android:showDividers="middle"
-    android:divider="@android:drawable/divider_horizontal_textfield"
     tools:context=".MainActivity">
 
     <EditText
         android:id="@+id/keywordEdit"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Search"
         android:background="@null"
+        android:hint="Search"
         android:padding="16dp" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -23,6 +23,6 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"/>
+        android:paddingEnd="16dp" />
 
 </LinearLayout>

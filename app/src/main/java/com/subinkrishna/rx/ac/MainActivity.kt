@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
     keywordEdit = configureInput()
-    val eventList = configureEventList()
+    configureEventList()
 
     val d = inputStream
         .debounce(300, TimeUnit.MILLISECONDS)
@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
               .just("${keyword.toUpperCase()} (${delay.toInt()}ms)")
               .delay(delay, TimeUnit.MILLISECONDS)
         }
+        .doOnError { runOnUiThread { eventsAdapter.add(it.message ?: it.toString(), EventType.Error) } }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe({
